@@ -18,14 +18,14 @@ os.environ["TORCH_FORCE_WEIGHTS_ONLY_LOAD"] = "0"
 
 
 
-# YOLO class indices for "person" in the COCO dataset
-_PERSON_CLASS_IDS = [0]
+# YOLO COCO class index for "person"
+_TARGET_CLASS_IDS = [0]
 
 # Model is loaded once and reused across all requests
 _model: YOLO | None = None
 
 
-def _get_model(model_name: str = "yolov8n.pt") -> YOLO:
+def _get_model(model_name: str = "yolov8m.pt") -> YOLO:
     """Lazy-load the YOLOv8 model (downloads weights on first call)."""
     global _model
     if _model is None:
@@ -35,12 +35,12 @@ def _get_model(model_name: str = "yolov8n.pt") -> YOLO:
 
 def detect_persons(
     frame: np.ndarray,
-    confidence_threshold: float = 0.25,
-    model_name: str = "yolov8n.pt",
+    confidence_threshold: float = 0.15,
+    model_name: str = "yolov8m.pt",
 ) -> list[list[int]]:
     """
     Run YOLOv8 inference on a single BGR frame and return bounding boxes
-    for every detected person.
+    for every detected person (using high resolution for crowds).
 
     Parameters
     ----------
@@ -58,11 +58,12 @@ def detect_persons(
     """
     model = _get_model(model_name)
 
-    # Using default imgsz (640) for fast CPU processing
+    # Using high-res imgsz (1024) to find small people/heads in dense crowds
     results = model.predict(
         source=frame,
-        classes=_PERSON_CLASS_IDS,
+        classes=_TARGET_CLASS_IDS,
         conf=confidence_threshold,
+        imgsz=1024,
         verbose=False,
     )
 
